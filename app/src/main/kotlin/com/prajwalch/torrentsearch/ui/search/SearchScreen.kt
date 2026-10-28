@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -20,6 +22,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -36,9 +40,11 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import com.prajwalch.torrentsearch.R
@@ -75,6 +81,7 @@ fun SearchScreen(
     onNavigateToProviders: () -> Unit,
     onNavigateToTorrentDetails: (id: String, url: String, providerName: String) -> Unit,
     modifier: Modifier = Modifier,
+    onSearch: (query: String, category: Category) -> Unit = { _, _ -> },
     viewModel: SearchViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -135,6 +142,8 @@ fun SearchScreen(
             .then(modifier),
         topBar = {
             SearchScreenTopBar(
+                query = uiState.searchParams.query,
+                onSearch = { query -> onSearch(query, uiState.searchParams.category) },
                 onNavigateBack = onNavigateBack,
                 searchBarVisible = showSearchBar,
                 onToggleSearchBar = { showSearchBar = !showSearchBar },
@@ -268,6 +277,8 @@ private fun SearchState.getAnimationContentKey() = when (this) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SearchScreenTopBar(
+    query: String,
+    onSearch: (String) -> Unit,
     onNavigateBack: () -> Unit,
     searchBarVisible: Boolean,
     onToggleSearchBar: () -> Unit,
@@ -297,7 +308,31 @@ private fun SearchScreenTopBar(
                 )
             }
         },
-        title = { Text(stringResource(R.string.search_screen_title)) },
+        title = {
+            // Editable copy of the current query; submitting it starts a new search.
+            var editedQuery by rememberSaveable(query) { mutableStateOf(query) }
+
+            TextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = editedQuery,
+                onValueChange = { editedQuery = it },
+                singleLine = true,
+                textStyle = MaterialTheme.typography.titleMedium,
+                placeholder = { Text(stringResource(R.string.search_screen_title)) },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        if (editedQuery.isNotBlank()) onSearch(editedQuery.trim())
+                    },
+                ),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                ),
+            )
+        },
         actions = {
             IconButton(
                 onClick = onToggleSearchBar,

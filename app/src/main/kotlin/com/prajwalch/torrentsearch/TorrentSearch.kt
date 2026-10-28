@@ -27,6 +27,8 @@ import org.koin.plugin.module.dsl.module
 
 /** Entry points for apps that embed TorrentSearch as a library. */
 object TorrentSearch {
+    internal const val EXTRA_OPEN_SETTINGS = "com.prajwalch.torrentsearch.OPEN_SETTINGS"
+
     /** Starts TorrentSearch's dependency graph. Call once from `Application.onCreate`. */
     fun init(context: Context) {
         val koin = startKoin {
@@ -48,6 +50,17 @@ object TorrentSearch {
         return Intent(context, MainActivity::class.java)
             .setAction(Intent.ACTION_SEARCH)
             .putExtra(SearchManager.QUERY, query)
+    }
+
+    /** Returns an intent that opens TorrentSearch's home screen. */
+    fun homeIntent(context: Context): Intent {
+        return Intent(context, MainActivity::class.java)
+    }
+
+    /** Returns an intent that opens TorrentSearch's settings. */
+    fun settingsIntent(context: Context): Intent {
+        return Intent(context, MainActivity::class.java)
+            .putExtra(EXTRA_OPEN_SETTINGS, true)
     }
 }
 

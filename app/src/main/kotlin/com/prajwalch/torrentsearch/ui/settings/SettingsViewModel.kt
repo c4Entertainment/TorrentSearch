@@ -195,11 +195,17 @@ class SettingsViewModel(
             PackageManager.COMPONENT_ENABLED_STATE_DISABLED
         }
 
-        packageManager.setComponentEnabledSetting(
-            componentName,
-            componentEnabledState,
-            PackageManager.DONT_KILL_APP,
-        )
+        try {
+            packageManager.setComponentEnabledSetting(
+                componentName,
+                componentEnabledState,
+                PackageManager.DONT_KILL_APP,
+            )
+        } catch (_: SecurityException) {
+            // Embedded in another app: the standalone app's activity aliases don't exist here.
+        } catch (_: IllegalArgumentException) {
+            // Same as above, on Android versions that report a missing component this way.
+        }
     }
 
     fun setDohProvider(provider: DohProvider) {

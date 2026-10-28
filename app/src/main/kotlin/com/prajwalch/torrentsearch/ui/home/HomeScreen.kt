@@ -56,6 +56,7 @@ fun HomeScreen(
     onSearch: (String, Category) -> Unit,
     onNavigateToSearchProviders: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateBack: (() -> Unit)? = null,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -82,6 +83,7 @@ fun HomeScreen(
                 enableSearchHistory = uiState.settings.searchHistoryEnabled,
                 onNavigateToSearchHistory = onNavigateToSearchHistory,
                 onNavigateToSettings = onNavigateToSettings,
+                onNavigateBack = onNavigateBack,
             )
         },
     ) { innerPadding ->
@@ -157,9 +159,21 @@ private fun HomeScreenTopBar(
     onNavigateToSearchHistory: () -> Unit,
     onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateBack: (() -> Unit)? = null,
 ) {
     TopAppBar(
         modifier = modifier,
+        navigationIcon = {
+            // Only shown when another app opened TorrentSearch, to return to it.
+            if (onNavigateBack != null) {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_arrow_back),
+                        contentDescription = null,
+                    )
+                }
+            }
+        },
         title = {},
         actions = {
             IconButton(onClick = onNavigateToBookmarks) {

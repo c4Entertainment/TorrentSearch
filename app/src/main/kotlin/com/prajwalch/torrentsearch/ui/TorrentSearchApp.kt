@@ -6,6 +6,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -50,10 +56,29 @@ private object Bookmarks
 private object SearchHistory
 
 @Composable
-fun TorrentSearchApp(initialSearchQuery: String? = null) {
+fun TorrentSearchApp(
+    initialSearchQuery: String? = null,
+    openSettings: Boolean = false,
+    onExit: (() -> Unit)? = null,
+) {
     val activity = LocalActivity.current
     val navController = rememberNavController()
     val startDestination = initialSearchQuery?.let { Search(it) } ?: Home
+
+    // Lets host apps open Settings directly. Saved so recreation doesn't push it twice.
+    var settingsOpened by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!openSettings) return@LaunchedEffect
+
+        if (!settingsOpened) {
+            settingsOpened = true
+            navController.navigateToSettings()
+        }
+        // Leaving Settings would land on Home; return to the host app instead.
+        navController.currentBackStackEntryFlow.collect { entry ->
+            if (entry.destination.hasRoute<Home>()) activity?.finish()
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -88,6 +113,7 @@ fun TorrentSearchApp(initialSearchQuery: String? = null) {
                 onSearch = { query, category -> navController.navigate(Search(query, category)) },
                 onBrowse = { category -> navController.navigate(Browse(category)) },
                 onNavigateToSearchProviders = { navController.navigateToSearchProviders() },
+                onNavigateBack = onExit,
             )
         }
 
@@ -103,6 +129,11 @@ fun TorrentSearchApp(initialSearchQuery: String? = null) {
                 onNavigateToProviders = { navController.navigateToSearchProviders() },
                 onNavigateToTorrentDetails = { id, pageUrl, providerName ->
                     navController.navigate(TorrentDetails(id, pageUrl, providerName))
+                },
+                onSearch = { query, category ->
+                    navController.navigate(Search(query, category)) {
+                        popUpTo<Search> { inclusive = true }
+                    }
                 },
             )
         }

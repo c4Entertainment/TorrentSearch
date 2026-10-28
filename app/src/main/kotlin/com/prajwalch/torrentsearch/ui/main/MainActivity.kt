@@ -20,6 +20,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import com.prajwalch.torrentsearch.R
+import com.prajwalch.torrentsearch.TorrentSearch
 import com.prajwalch.torrentsearch.domain.model.DarkTheme
 import com.prajwalch.torrentsearch.ui.TorrentSearchApp
 import com.prajwalch.torrentsearch.ui.theme.TorrentSearchTheme
@@ -58,7 +59,12 @@ class MainActivity : ComponentActivity() {
                 pureBlack = uiState.pureBlack,
             ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    TorrentSearchApp(initialSearchQuery = initialSearchQuery)
+                    TorrentSearchApp(
+                        initialSearchQuery = initialSearchQuery,
+                        openSettings = intent.getBooleanExtra(TorrentSearch.EXTRA_OPEN_SETTINGS, false),
+                        // Opened from another app: let Home's back button return to it.
+                        onExit = if (isTaskRoot) null else ::finish,
+                    )
                 }
             }
         }
