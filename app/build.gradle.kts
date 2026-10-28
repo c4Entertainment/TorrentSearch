@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.android.application)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -15,49 +15,22 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.prajwalch.torrentsearch"
         minSdk = 25
-        targetSdk = 37
-        versionCode = 19
-        versionName = "0.5.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
+        consumerProguardFiles("proguard-rules.pro")
 
-    signingConfigs {
-        create("release") {
-            storeFile = System.getenv("SIGNING_STORE_FILE")?.let(::file)
-            storePassword = System.getenv("SIGNING_STORE_PASSWORD")
-            keyAlias = System.getenv("SIGNING_KEY_ALIAS")
-            keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
-        }
+        // Library modules don't get these generated, but the code uses them.
+        // Versions live in gradle.properties so the standalone app shares them.
+        buildConfigField("String", "APPLICATION_ID", "\"com.prajwalch.torrentsearch\"")
+        buildConfigField("String", "VERSION_NAME", "\"${property("torrentsearch.versionName")}\"")
+        buildConfigField("int", "VERSION_CODE", "${property("torrentsearch.versionCode")}")
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release").takeIf { it.storeFile != null }
-
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-
+        // Mirrors the standalone app's build types so its variants resolve.
         create("staging") {
             initWith(getByName("release"))
-
-            applicationIdSuffix = ".staging"
-            versionNameSuffix = "-staging"
-            signingConfig = signingConfigs.getByName("debug")
-        }
-
-        debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
-            isDebuggable = true
-            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -72,21 +45,6 @@ android {
         buildConfig = true
     }
 
-    dependenciesInfo {
-        // Disables dependency metadata when building APKs (for IzzyOnDroid/F-Droid).
-        includeInApk = false
-        // Disables dependency metadata when building Android App Bundles (for Google Play).
-        includeInBundle = false
-    }
-
-    androidResources {
-        generateLocaleConfig = true
-    }
-
-    packaging {
-        resources.excludes += "DebugProbesKt.bin"
-        jniLibs.keepDebugSymbols.add("**/*.so")
-    }
 }
 
 room {

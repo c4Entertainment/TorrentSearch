@@ -15,13 +15,6 @@ import coil3.request.CachePolicy
 import coil3.request.allowHardware
 import coil3.request.crossfade
 
-import com.prajwalch.torrentsearch.di.ViewModelModule
-import com.prajwalch.torrentsearch.di.builtinSearchProvidersModule
-import com.prajwalch.torrentsearch.di.dataStoreModule
-import com.prajwalch.torrentsearch.di.databaseModule
-import com.prajwalch.torrentsearch.di.domainModule
-import com.prajwalch.torrentsearch.di.networkModule
-import com.prajwalch.torrentsearch.di.repositoryModule
 import com.prajwalch.torrentsearch.network.NetworkClient
 import com.prajwalch.torrentsearch.ui.crash.CrashActivity
 import com.prajwalch.torrentsearch.util.TorrentSearchExceptionHandler
@@ -29,7 +22,6 @@ import com.prajwalch.torrentsearch.util.TorrentSearchExceptionHandler
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
-import org.koin.plugin.module.dsl.module
 
 class TorrentSearchApplication : Application(), SingletonImageLoader.Factory {
     private val networkClient: NetworkClient by inject()
@@ -39,15 +31,7 @@ class TorrentSearchApplication : Application(), SingletonImageLoader.Factory {
 
         startKoin {
             androidContext(this@TorrentSearchApplication)
-            modules(
-                builtinSearchProvidersModule,
-                dataStoreModule,
-                databaseModule,
-                domainModule,
-                networkModule,
-                repositoryModule,
-            )
-            module<ViewModelModule>()
+            torrentSearchModules()
         }
 
         if (BuildConfig.DEBUG) {

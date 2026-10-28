@@ -33,7 +33,11 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        onBackPressedDispatcher.addCallback(this) { moveTaskToBack(true) }
+        // When embedded in another app, going back should return to it rather
+        // than backgrounding the host app's whole task.
+        onBackPressedDispatcher.addCallback(this) {
+            if (isTaskRoot) moveTaskToBack(true) else finish()
+        }
 
         val initialSearchQuery = getInitialSearchQuery()
 
