@@ -14,6 +14,7 @@ import com.prajwalch.torrentsearch.di.networkModule
 import com.prajwalch.torrentsearch.di.repositoryModule
 import com.prajwalch.torrentsearch.domain.SearchProviderManager
 import com.prajwalch.torrentsearch.domain.model.Category
+import com.prajwalch.torrentsearch.domain.model.DarkTheme
 import com.prajwalch.torrentsearch.domain.model.SearchTarget
 import com.prajwalch.torrentsearch.providers.Torrentio
 import com.prajwalch.torrentsearch.ui.main.MainActivity
@@ -24,6 +25,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.Koin
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.plugin.module.dsl.module
@@ -34,16 +36,42 @@ object TorrentSearch {
     internal const val EXTRA_CATEGORY = "com.prajwalch.torrentsearch.CATEGORY"
     internal const val EXTRA_TARGET = "com.prajwalch.torrentsearch.TARGET"
 
-    /** Starts TorrentSearch's dependency graph. Call once from `Application.onCreate`. */
-    fun init(context: Context) {
-        val koin = startKoin {
+    /** Set by the host app; hides TorrentSearch's Appearance settings. */
+    @Volatile
+    internal var hostManagesAppearance = false
+        private set
+
+    /** Set by the host app; hides TorrentSearch's Language setting. */
+    @Volatile
+    internal var hostManagesLanguage = false
+        private set
+
+    private lateinit var koin: Koin
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /**
+     * Starts TorrentSearch's dependency graph. Call once from `Application.onCreate`.
+     *
+     * @param hostManagesAppearance The host app has its own theme settings and
+     *   pushes them in with [setAppearance]; TorrentSearch's are hidden.
+     * @param hostManagesLanguage The host app offers the app-wide language
+     *   setting itself; TorrentSearch's Language row is hidden.
+     */
+    fun init(
+        context: Context,
+        hostManagesAppearance: Boolean = false,
+        hostManagesLanguage: Boolean = false,
+    ) {
+        this.hostManagesAppearance = hostManagesAppearance
+        this.hostManagesLanguage = hostManagesLanguage
+        koin = startKoin {
             androidContext(context.applicationContext)
             torrentSearchModules()
         }.koin
 
         // The standalone app asks about this in a dialog on its Home screen, but
         // host apps open the Search screen directly, so the dialog never shows.
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+        scope.launch {
             val settings = koin.get<SettingsRepository>()
             if (settings.currentEnabledProviderIds() == null) {
                 koin.get<SearchProviderManager>().enableDefaultSearchProviders()
@@ -72,6 +100,19 @@ object TorrentSearch {
             .putExtra(SearchManager.QUERY, query)
             .putExtra(EXTRA_CATEGORY, category.name)
             .putExtra(EXTRA_TARGET, target?.encode())
+    }
+
+    /**
+     * Themes TorrentSearch's screens like the host app's. Call after [init]
+     * and whenever the host's theme settings change.
+     */
+    fun setAppearance(darkTheme: DarkTheme, dynamicTheme: Boolean, pureBlack: Boolean) {
+        scope.launch {
+            val settings = koin.get<SettingsRepository>()
+            settings.setDarkTheme(darkTheme)
+            settings.enableDynamicTheme(dynamicTheme)
+            settings.enablePureBlack(pureBlack)
+        }
     }
 
     /** Returns an intent that opens TorrentSearch's home screen. */

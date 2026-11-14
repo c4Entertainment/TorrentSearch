@@ -47,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import com.prajwalch.torrentsearch.BuildConfig
 import com.prajwalch.torrentsearch.R
+import com.prajwalch.torrentsearch.TorrentSearch
 import com.prajwalch.torrentsearch.constant.TorrentSearchConstants
 import com.prajwalch.torrentsearch.domain.model.DarkTheme
 import com.prajwalch.torrentsearch.domain.model.DohProvider
@@ -104,12 +105,15 @@ fun SettingsScreen(
                 .verticalScroll(state = rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(MaterialTheme.spaces.large),
         ) {
-            AppearanceSection(
-                uiState = uiState.appearanceSettings,
-                onEnableDynamicTheme = viewModel::enableDynamicTheme,
-                onSetDarkTheme = viewModel::setDarkTheme,
-                onEnablePureBlackTheme = viewModel::enablePureBlackTheme,
-            )
+            // Host apps with their own theme settings drive ours instead.
+            if (!TorrentSearch.hostManagesAppearance) {
+                AppearanceSection(
+                    uiState = uiState.appearanceSettings,
+                    onEnableDynamicTheme = viewModel::enableDynamicTheme,
+                    onSetDarkTheme = viewModel::setDarkTheme,
+                    onEnablePureBlackTheme = viewModel::enablePureBlackTheme,
+                )
+            }
 
             val packageManager = LocalContext.current.packageManager
             GeneralSection(
@@ -262,7 +266,8 @@ private fun GeneralSection(
 
         SettingsGroup {
             // Per-app language preferences is available only on Android 13+.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // It's app-wide, so a host app may offer it in its own settings.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !TorrentSearch.hostManagesLanguage) {
                 val context = LocalContext.current
 
                 SettingsListItem(
