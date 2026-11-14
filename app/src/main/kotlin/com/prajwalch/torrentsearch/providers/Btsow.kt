@@ -1,5 +1,7 @@
 package com.prajwalch.torrentsearch.providers
 
+import android.net.Uri
+
 import com.prajwalch.torrentsearch.domain.model.Category
 import com.prajwalch.torrentsearch.domain.model.MagnetUri
 import com.prajwalch.torrentsearch.domain.model.SearchProviderSafety
@@ -39,7 +41,8 @@ class Btsow(private val networkClient: NetworkClient) : SearchProvider, TorrentD
         // [{"search":"one"},30,3]
         val requestPayload = buildJsonArray {
             addJsonObject {
-                put("search", JsonPrimitive(query))
+                // Sent in the body, so undo the URL encoding the query arrives with.
+                put("search", JsonPrimitive(Uri.decode(query)))
             }
             // Num of results per page.
             add(JsonPrimitive(30))

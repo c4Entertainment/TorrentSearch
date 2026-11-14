@@ -1,5 +1,7 @@
 package com.prajwalch.torrentsearch.providers
 
+import android.net.Uri
+
 import com.prajwalch.torrentsearch.domain.model.Category
 import com.prajwalch.torrentsearch.domain.model.MagnetUri
 import com.prajwalch.torrentsearch.domain.model.SearchProviderSafety
@@ -41,7 +43,8 @@ class BangumiMoe(private val networkClient: NetworkClient) :
         val requestUrl = "$url/api/v2/torrent/search"
         val responseJson = networkClient.postJson(
             url = requestUrl,
-            payload = buildJsonObject { put("query", JsonPrimitive(query)) },
+            // Sent in the body, so undo the URL encoding the query arrives with.
+            payload = buildJsonObject { put("query", JsonPrimitive(Uri.decode(query))) },
         ) ?: return emptyList()
 
         return resultsJsonParser.parse(responseJson)

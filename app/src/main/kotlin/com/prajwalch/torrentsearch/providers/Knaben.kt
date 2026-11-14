@@ -1,5 +1,7 @@
 package com.prajwalch.torrentsearch.providers
 
+import android.net.Uri
+
 import com.prajwalch.torrentsearch.domain.model.Category
 import com.prajwalch.torrentsearch.domain.model.MagnetUri
 import com.prajwalch.torrentsearch.domain.model.SearchProviderSafety
@@ -54,8 +56,10 @@ class Knaben(private val networkClient: NetworkClient) :
     private val resultsJsonParser = KnabenResultsJsonParser(id, name)
 
     override suspend fun search(query: String, category: Category): List<Torrent> {
+        // The query arrives URL-encoded for URL-based providers; this one sends
+        // it in a request body, where "%20" would be searched literally.
         val requestBody = buildRequestJson(
-            query = query,
+            query = Uri.decode(query),
             category = category,
             orderBy = "seeders",
         )

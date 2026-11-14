@@ -1,5 +1,7 @@
 package com.prajwalch.torrentsearch.providers
 
+import android.net.Uri
+
 import com.prajwalch.torrentsearch.domain.model.Category
 import com.prajwalch.torrentsearch.domain.model.MagnetUri
 import com.prajwalch.torrentsearch.domain.model.SearchProviderSafety
@@ -77,7 +79,9 @@ class NoNameClub(private val networkClient: NetworkClient) :
     override suspend fun search(query: String, category: Category): List<Torrent> {
         val requestUrl = "$url/forum/tracker.php"
         val formData = buildRequestFormPayload(
-            query = query,
+            // The form client encodes values itself; undo the URL encoding the
+            // query arrives with so it isn't encoded twice.
+            query = Uri.decode(query),
             category = category,
             sortCriteria = FormParamValues.CRITERIA_TOPIC_TITLE,
             dateRange = FormParamValues.DATE_ALL_TIME,
