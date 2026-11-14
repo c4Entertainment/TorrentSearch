@@ -2,7 +2,7 @@
 
 This fork of [prajwalch/TorrentSearch](https://github.com/prajwalch/TorrentSearch) splits the
 project so it can be embedded in [Movie Hunter](https://github.com/m3ugoat) as a library.
-Work happens on the `movie-hunter` branch.
+Work happens on the `media-hunter` branch (the default).
 
 ## What changed
 
