@@ -21,7 +21,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import com.prajwalch.torrentsearch.R
 import com.prajwalch.torrentsearch.TorrentSearch
+import com.prajwalch.torrentsearch.domain.model.Category
 import com.prajwalch.torrentsearch.domain.model.DarkTheme
+import com.prajwalch.torrentsearch.domain.model.SearchTarget
 import com.prajwalch.torrentsearch.ui.TorrentSearchApp
 import com.prajwalch.torrentsearch.ui.theme.TorrentSearchTheme
 
@@ -61,6 +63,10 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     TorrentSearchApp(
                         initialSearchQuery = initialSearchQuery,
+                        initialCategory = getInitialCategory(),
+                        initialTarget = SearchTarget.decodeOrNull(
+                            intent.getStringExtra(TorrentSearch.EXTRA_TARGET),
+                        ),
                         openSettings = intent.getBooleanExtra(TorrentSearch.EXTRA_OPEN_SETTINGS, false),
                         // Opened from another app: let Home's back button return to it.
                         onExit = if (isTaskRoot) null else ::finish,
@@ -68,6 +74,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /** Returns the category a host app asked to search in, or [Category.All]. */
+    private fun getInitialCategory(): Category {
+        val name = intent.getStringExtra(TorrentSearch.EXTRA_CATEGORY) ?: return Category.All
+        return Category.entries.firstOrNull { it.name == name } ?: Category.All
     }
 
     /**

@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
 import com.prajwalch.torrentsearch.domain.model.Category
+import com.prajwalch.torrentsearch.domain.model.SearchTarget
 import com.prajwalch.torrentsearch.ui.bookmarks.BookmarksScreen
 import com.prajwalch.torrentsearch.ui.browse.BrowseScreen
 import com.prajwalch.torrentsearch.ui.home.HomeScreen
@@ -37,6 +38,8 @@ private object Home
 private data class Search(
     val query: String,
     val category: Category = Category.All,
+    /** An encoded [SearchTarget], read back by the Search screen's view model. */
+    val target: String? = null,
 )
 
 @Serializable
@@ -58,12 +61,16 @@ private object SearchHistory
 @Composable
 fun TorrentSearchApp(
     initialSearchQuery: String? = null,
+    initialCategory: Category = Category.All,
+    initialTarget: SearchTarget? = null,
     openSettings: Boolean = false,
     onExit: (() -> Unit)? = null,
 ) {
     val activity = LocalActivity.current
     val navController = rememberNavController()
-    val startDestination = initialSearchQuery?.let { Search(it) } ?: Home
+    val startDestination = initialSearchQuery?.let {
+        Search(query = it, category = initialCategory, target = initialTarget?.encode())
+    } ?: Home
 
     // Lets host apps open Settings directly. Saved so recreation doesn't push it twice.
     var settingsOpened by rememberSaveable { mutableStateOf(false) }

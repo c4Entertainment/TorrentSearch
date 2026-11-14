@@ -1,6 +1,7 @@
 package com.prajwalch.torrentsearch.provider
 
 import com.prajwalch.torrentsearch.domain.model.Category
+import com.prajwalch.torrentsearch.domain.model.SearchTarget
 import com.prajwalch.torrentsearch.domain.model.SearchProviderSafety
 import com.prajwalch.torrentsearch.domain.model.Torrent
 
@@ -80,4 +81,14 @@ interface SearchProvider {
      * Any exceptions thrown from this function will be caught safely.
      */
     suspend fun search(query: String, category: Category): List<Torrent>
+
+    /**
+     * Searches torrents for the exact movie or show in [target], if given.
+     *
+     * Providers that can look up by IMDb ID or season override this; the
+     * default ignores the target and searches by [query]. Results are
+     * filtered against the target afterwards either way.
+     */
+    suspend fun search(query: String, category: Category, target: SearchTarget?): List<Torrent> =
+        search(query, category)
 }

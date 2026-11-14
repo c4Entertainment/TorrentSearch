@@ -9,6 +9,7 @@ import com.prajwalch.torrentsearch.data.repository.SettingsRepository
 import com.prajwalch.torrentsearch.data.repository.ViewedTorrentRepository
 import com.prajwalch.torrentsearch.domain.TorrentQueryService
 import com.prajwalch.torrentsearch.domain.model.Category
+import com.prajwalch.torrentsearch.domain.model.SearchTarget
 import com.prajwalch.torrentsearch.domain.model.SearchProviderError
 import com.prajwalch.torrentsearch.domain.model.SearchProviderResult
 import com.prajwalch.torrentsearch.domain.model.SortCriteria
@@ -64,6 +65,8 @@ data class SearchUiState(
 data class SearchParams(
     val query: String = "",
     val category: Category = Category.All,
+    /** The exact movie or show a host app asked for, if any. */
+    val target: SearchTarget? = null,
 )
 
 sealed interface SearchState {
@@ -194,8 +197,9 @@ class SearchViewModel(
         // TODO: Support empty search query.
             ?: error("Empty search query isn't supported")
         val category = savedStateHandle.get<Category>("category") ?: Category.All
+        val target = SearchTarget.decodeOrNull(savedStateHandle.get<String>("target"))
 
-        return SearchParams(query, category)
+        return SearchParams(query, category, target)
     }
 
     private fun saveSearchQuery() = viewModelScope.launch {
@@ -205,7 +209,7 @@ class SearchViewModel(
     }
 
     fun search() {
-        resultsLoader.search(searchParams.query, searchParams.category)
+        resultsLoader.search(searchParams)
     }
 
     fun stopSearch() {
@@ -213,11 +217,11 @@ class SearchViewModel(
     }
 
     fun refreshSearchResults() {
-        resultsLoader.refresh(searchParams.query, searchParams.category)
+        resultsLoader.refresh(searchParams)
     }
 
     fun retryError(errorItem: ErrorItem) {
-        resultsLoader.retryError(errorItem, searchParams.query, searchParams.category)
+        resultsLoader.retryError(errorItem, searchParams)
     }
 
     fun filterSearchResultsByName(query: String) {
@@ -324,7 +328,7 @@ private class SearchResultsLoader(
     /**
      * Initiates a new search for the given query and category.
      */
-    fun search(query: String, category: Category) {
+    fun search(params: SearchParams) {
         searchJob?.cancel()
         searchJob = scope.launch {
             _searchState.value = SearchState.Loading
@@ -334,7 +338,7 @@ private class SearchResultsLoader(
                 return@launch
             }
 
-            executeSearch(query = query, category = category)
+            executeSearch(params)
         }
     }
 
@@ -349,7 +353,7 @@ private class SearchResultsLoader(
     /**
      * Refreshes the current search results by refetching new results.
      */
-    fun refresh(query: String, category: Category) {
+    fun refresh(params: SearchParams) {
         searchJob?.cancel()
         searchJob = scope.launch {
             _searchState.value = SearchState.ResultsAvailable.Refreshing
@@ -359,7 +363,7 @@ private class SearchResultsLoader(
                 return@launch
             }
 
-            executeSearch(query = query, category = category)
+            executeSearch(params)
         }
     }
 
@@ -367,8 +371,12 @@ private class SearchResultsLoader(
     /**
      * Executes a new search for the given query and category.
      */
-    private suspend fun executeSearch(query: String, category: Category) {
-        torrentQueryService.searchTorrents(query = query, category = category)
+    private suspend fun executeSearch(params: SearchParams) {
+        torrentQueryService.searchTorrents(
+            query = params.query,
+            category = params.category,
+            target = params.target,
+        )
             .conflate()
             .onCompletion {
                 _searchState.value = if (_torrents.value.isEmpty()) {
@@ -389,7 +397,7 @@ private class SearchResultsLoader(
             }
     }
 
-    fun retryError(errorItem: ErrorItem, query: String, category: Category) {
+    fun retryError(errorItem: ErrorItem, params: SearchParams) {
         scope.launch {
             val providerId = errorItem.providerError.providerId
 
@@ -402,8 +410,9 @@ private class SearchResultsLoader(
 
             val result = torrentQueryService.searchTorrents(
                 providerId = providerId,
-                query = query,
-                category = category,
+                query = params.query,
+                category = params.category,
+                target = params.target,
             )
 
             when (result) {

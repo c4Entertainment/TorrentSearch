@@ -41,6 +41,7 @@ import com.prajwalch.torrentsearch.providers.TorrentDatabase
 import com.prajwalch.torrentsearch.providers.TorrentDownload
 import com.prajwalch.torrentsearch.providers.TorrentDownloads
 import com.prajwalch.torrentsearch.providers.TorrentKitty
+import com.prajwalch.torrentsearch.providers.Torrentio
 import com.prajwalch.torrentsearch.providers.TorrentsCSV
 import com.prajwalch.torrentsearch.providers.Torrentz
 import com.prajwalch.torrentsearch.providers.UIndex
@@ -92,6 +93,7 @@ private fun provideBuiltinSearchProviders(networkClient: NetworkClient): List<Se
         TorrentDownload(networkClient),
         TorrentDownloads(networkClient),
         TorrentKitty(networkClient),
+        Torrentio(networkClient),
         TorrentsCSV(networkClient),
         Torrentz(networkClient),
         UIndex(networkClient),

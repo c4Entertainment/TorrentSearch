@@ -195,6 +195,22 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    /**
+     * Enables [id] for installs that saved their provider list before it
+     * existed. Runs once per provider, so a user can still disable it later.
+     * New installs get it from the default set instead.
+     */
+    suspend fun enableNewDefaultProviderOnce(id: SearchProviderId) {
+        dataStore.edit {
+            val appliedKey = booleanPreferencesKey("new_default_provider_applied_$id")
+            if (it[appliedKey] == true) return@edit
+            it[appliedKey] = true
+
+            val currentIds = it[ENABLED_PROVIDER_IDS] ?: return@edit
+            it[ENABLED_PROVIDER_IDS] = currentIds + id
+        }
+    }
+
     suspend fun removeEnabledProviderId(id: SearchProviderId) {
         dataStore.edit {
             val currentIds = it[ENABLED_PROVIDER_IDS] ?: return@edit

@@ -3,6 +3,7 @@ package com.prajwalch.torrentsearch.providers
 import com.prajwalch.torrentsearch.domain.model.Category
 import com.prajwalch.torrentsearch.domain.model.MagnetUri
 import com.prajwalch.torrentsearch.domain.model.SearchProviderSafety
+import com.prajwalch.torrentsearch.domain.model.SearchTarget
 import com.prajwalch.torrentsearch.domain.model.Torrent
 import com.prajwalch.torrentsearch.domain.model.TorrentDetails
 import com.prajwalch.torrentsearch.extension.asObject
@@ -41,10 +42,27 @@ class Yts(private val networkClient: NetworkClient) :
     private val resultsJsonParser = YtsResultsJsonParser(id, name)
 
     override suspend fun search(query: String, category: Category): List<Torrent> {
+        return searchByTerm(query)
+    }
+
+    /** Looks the movie up by IMDb ID when [target] has one: exact, unlike a title search. */
+    override suspend fun search(
+        query: String,
+        category: Category,
+        target: SearchTarget?,
+    ): List<Torrent> {
+        val imdbId = target?.takeIf { it.kind == SearchTarget.Kind.Movie }?.imdbTtId
+            ?: return search(query, category)
+
+        return searchByTerm(imdbId).ifEmpty { search(query, category) }
+    }
+
+    /** `query_term` matches titles, IMDb IDs ("tt0111161"), actors and directors. */
+    private suspend fun searchByTerm(term: String): List<Torrent> {
         val requestUrl = buildString {
             append(API_BASE_URL)
             append("/list_movies.json")
-            append("?query_term=$query")
+            append("?query_term=$term")
             append("&limit=50")
         }
         val responseJson = networkClient.getJson(url = requestUrl) ?: return emptyList()

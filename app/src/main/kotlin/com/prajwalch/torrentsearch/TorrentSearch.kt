@@ -13,6 +13,9 @@ import com.prajwalch.torrentsearch.di.domainModule
 import com.prajwalch.torrentsearch.di.networkModule
 import com.prajwalch.torrentsearch.di.repositoryModule
 import com.prajwalch.torrentsearch.domain.SearchProviderManager
+import com.prajwalch.torrentsearch.domain.model.Category
+import com.prajwalch.torrentsearch.domain.model.SearchTarget
+import com.prajwalch.torrentsearch.providers.Torrentio
 import com.prajwalch.torrentsearch.ui.main.MainActivity
 
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +31,8 @@ import org.koin.plugin.module.dsl.module
 /** Entry points for apps that embed TorrentSearch as a library. */
 object TorrentSearch {
     internal const val EXTRA_OPEN_SETTINGS = "com.prajwalch.torrentsearch.OPEN_SETTINGS"
+    internal const val EXTRA_CATEGORY = "com.prajwalch.torrentsearch.CATEGORY"
+    internal const val EXTRA_TARGET = "com.prajwalch.torrentsearch.TARGET"
 
     /** Starts TorrentSearch's dependency graph. Call once from `Application.onCreate`. */
     fun init(context: Context) {
@@ -39,17 +44,34 @@ object TorrentSearch {
         // The standalone app asks about this in a dialog on its Home screen, but
         // host apps open the Search screen directly, so the dialog never shows.
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            if (koin.get<SettingsRepository>().currentEnabledProviderIds() == null) {
+            val settings = koin.get<SettingsRepository>()
+            if (settings.currentEnabledProviderIds() == null) {
                 koin.get<SearchProviderManager>().enableDefaultSearchProviders()
             }
+            // Providers added as defaults after the list was first saved.
+            settings.enableNewDefaultProviderOnce(Torrentio.ID)
         }
     }
 
-    /** Returns an intent that opens TorrentSearch, searching for [query] straight away. */
-    fun searchIntent(context: Context, query: String): Intent {
+    /**
+     * Returns an intent that opens TorrentSearch, searching for [query] in
+     * [category] straight away.
+     *
+     * Pass a [target] to search for an exact movie or show: providers that
+     * support it look up by IMDb ID, and results whose release names don't
+     * match the target (wrong title, year, season or episode) are hidden.
+     */
+    fun searchIntent(
+        context: Context,
+        query: String,
+        category: Category = Category.All,
+        target: SearchTarget? = null,
+    ): Intent {
         return Intent(context, MainActivity::class.java)
             .setAction(Intent.ACTION_SEARCH)
             .putExtra(SearchManager.QUERY, query)
+            .putExtra(EXTRA_CATEGORY, category.name)
+            .putExtra(EXTRA_TARGET, target?.encode())
     }
 
     /** Returns an intent that opens TorrentSearch's home screen. */

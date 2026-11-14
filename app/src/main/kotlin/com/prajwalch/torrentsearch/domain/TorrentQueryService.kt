@@ -10,6 +10,7 @@ import com.prajwalch.torrentsearch.domain.model.MaxNumResults
 import com.prajwalch.torrentsearch.domain.model.SearchProviderError
 import com.prajwalch.torrentsearch.domain.model.SearchProviderResult
 import com.prajwalch.torrentsearch.domain.model.SearchResults
+import com.prajwalch.torrentsearch.domain.model.SearchTarget
 import com.prajwalch.torrentsearch.domain.model.Torrent
 import com.prajwalch.torrentsearch.network.CloudflareChallengeException
 import com.prajwalch.torrentsearch.provider.SearchProvider
@@ -42,14 +43,23 @@ class TorrentQueryService(
 
     private val torrentIdToMagnetUri = mutableMapOf<String, String>()
 
-    fun searchTorrents(query: String, category: Category): Flow<SearchResults> = flow {
+    /**
+     * Searches every enabled provider. With a [target], results whose release
+     * names aren't that movie or episode are dropped.
+     */
+    fun searchTorrents(
+        query: String,
+        category: Category,
+        target: SearchTarget? = null,
+    ): Flow<SearchResults> = flow {
         val limit = settingsRepository.maxNumResults.firstOrNull() ?: MaxNumResults.Unlimited
-        emitAll(searchTorrents(query, category, limit))
+        emitAll(searchTorrents(query, category, target, limit))
     }
 
     private fun searchTorrents(
         query: String,
         category: Category,
+        target: SearchTarget?,
         limit: MaxNumResults,
     ): Flow<SearchResults> = channelFlow {
         val enabledProviders = searchProviderManager.getEnabledProviders(category)
@@ -58,7 +68,9 @@ class TorrentQueryService(
         val encodedQuery = Uri.encode(query)!!
         enabledProviders.forEach {
             launch {
-                val result = runCatchingProvider(it) { search(encodedQuery, category) }
+                val result = runCatchingProvider(it) {
+                    search(encodedQuery, category, target).matching(target)
+                }
                 send(result)
             }
         }
@@ -96,13 +108,19 @@ class TorrentQueryService(
         providerId: SearchProviderId,
         query: String,
         category: Category,
+        target: SearchTarget? = null,
     ): SearchProviderResult<ImmutableList<Torrent>> {
         val searchProvider = searchProviderManager.findEnabledProvider(providerId)
             ?: error("Couldn't find a provider with an id '$providerId'")
 
         return runCatchingProvider(searchProvider) {
-            search(query, category).toImmutableList()
+            search(Uri.encode(query)!!, category, target).matching(target).toImmutableList()
         }
+    }
+
+    private fun List<Torrent>.matching(target: SearchTarget?): List<Torrent> {
+        if (target == null) return this
+        return filter { ReleaseNameMatcher.matches(it.name, target) }
     }
 
     fun getLatestTorrents(category: Category): Flow<PersistentList<Torrent>> = channelFlow {

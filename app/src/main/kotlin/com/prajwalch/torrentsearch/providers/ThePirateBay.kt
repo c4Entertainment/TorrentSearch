@@ -4,6 +4,7 @@ import com.prajwalch.torrentsearch.R
 import com.prajwalch.torrentsearch.domain.model.Category
 import com.prajwalch.torrentsearch.domain.model.MagnetUri
 import com.prajwalch.torrentsearch.domain.model.SearchProviderSafety
+import com.prajwalch.torrentsearch.domain.model.SearchTarget
 import com.prajwalch.torrentsearch.domain.model.Torrent
 import com.prajwalch.torrentsearch.domain.model.TorrentDetails
 import com.prajwalch.torrentsearch.extension.asArray
@@ -63,6 +64,22 @@ class ThePirateBay(private val networkClient: NetworkClient) :
 
         val responseJson = networkClient.getJson(requestUrl) ?: return emptyList()
         return resultsJsonParser.parse(responseJson)
+    }
+
+    /**
+     * Searches a movie by IMDb ID when [target] has one: the API matches it
+     * against each upload's IMDb tag, so results are exact. TV uploads are
+     * rarely tagged, so shows keep the text search.
+     */
+    override suspend fun search(
+        query: String,
+        category: Category,
+        target: SearchTarget?,
+    ): List<Torrent> {
+        val imdbId = target?.takeIf { it.kind == SearchTarget.Kind.Movie }?.imdbTtId
+            ?: return search(query, category)
+
+        return search(imdbId, Category.All).ifEmpty { search(query, category) }
     }
 
     override suspend fun getDetails(detailsPageUrl: String): TorrentDetails? {
